@@ -121,6 +121,18 @@ func HandleError(c *gin.Context, status int, code, message string, meta map[stri
 	})
 }
 
+// DecodeJSON reads + validates the request body into dst.
+// Caps body at maxBytes to prevent OOM from a malicious client.
+func DecodeJSON(c *gin.Context, dst any, maxBytes int64) error {
+	c.Request.Body = http.MaxBytesReader(nil, c.Request.Body, maxBytes)
+	return c.ShouldBindJSON(dst)
+}
+
+// JSON writes an arbitrary value as application/json with the given status.
+func JSON(c *gin.Context, status int, v any) {
+	c.JSON(status, v)
+}
+
 // Error maps a plain status+message to the structured ErrorResponse.
 // Compatibility shim — prefer typed Handle* helpers for new code.
 func Error(c *gin.Context, status int, message string) {
