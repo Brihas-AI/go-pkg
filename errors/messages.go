@@ -11,4 +11,5 @@ const (
 	MsgExternalService     = "An external service failed. Please try again later."
 	MsgServiceUnavailable  = "Service temporarily unavailable. Please try again later."
 	MsgBadRequest          = "The request was invalid."
+	MsgGone                = "This resource is no longer available."
 )

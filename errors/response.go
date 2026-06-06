@@ -127,6 +127,12 @@ func Error(c *gin.Context, status int, message string) {
 	HandleError(c, status, statusToCode(status), message, nil)
 }
 
+// ErrorWithCode maps the old code/message/meta style to HandleError.
+// Compatibility shim — prefer typed Handle* helpers for new code.
+func ErrorWithCode(c *gin.Context, status int, code, message string, meta map[string]any) {
+	HandleError(c, status, code, message, meta)
+}
+
 func statusToCode(status int) string {
 	switch status {
 	case 400:
