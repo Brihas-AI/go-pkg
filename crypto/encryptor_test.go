@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"context"
+	"errors"
 	"testing"
 )
 
@@ -102,6 +103,30 @@ func TestEncryptor_SealOpenString_RoundTrip(t *testing.T) {
 	}
 	if got != msg {
 		t.Fatalf("round-trip mismatch: %q != %q", got, msg)
+	}
+}
+
+// TestEncryptor_OpenString_NoProvider_OnCiphertext pins the contract that the
+// brihasai-core dashboard read paths branch on: when a row is genuinely
+// encrypted but the reader has NO key provider (KMS misconfigured / key
+// unavailable), OpenString returns ErrNoProvider — NEVER leaks ciphertext and
+// NEVER silently returns "". Core uses errors.Is(err, ErrNoProvider) to fail
+// the request visibly (503) instead of returning blank data. A regression that
+// returned "" here would re-introduce the silent-data-loss bug.
+func TestEncryptor_OpenString_NoProvider_OnCiphertext(t *testing.T) {
+	ctx := context.Background()
+	// Seal with a provider so we have real ciphertext.
+	sealed, err := NewEncryptor(staticProvider()).SealString(ctx, "u-1", "private note")
+	if err != nil {
+		t.Fatalf("seal: %v", err)
+	}
+	// Open with NO provider — must surface ErrNoProvider, not "".
+	got, err := NewEncryptor(nil).OpenString(ctx, "u-1", sealed)
+	if !errors.Is(err, ErrNoProvider) {
+		t.Fatalf("expected ErrNoProvider opening ciphertext without provider, got err=%v", err)
+	}
+	if got != "" {
+		t.Fatalf("must not leak ciphertext on ErrNoProvider, got %q", got)
 	}
 }
 
