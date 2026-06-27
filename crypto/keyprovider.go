@@ -14,6 +14,18 @@ type KeyProvider interface {
 	UnwrapDEK(ctx context.Context, userID string) ([]byte, error)
 }
 
+// DEKStore persists KMS-wrapped per-user Data Encryption Keys. The wrapped bytes are
+// opaque ciphertext — only the KEK can produce the plaintext DEK. Implementations
+// must be safe for concurrent use.
+type DEKStore interface {
+	// Get returns the wrapped DEK for userID. found=false means no row exists yet.
+	Get(ctx context.Context, userID string) (wrapped []byte, found bool, err error)
+	// PutIfAbsent stores wrapped for userID if no row exists yet. Returns the
+	// canonical stored bytes — may differ from the input if another writer raced us
+	// (caller must use the returned value, not the one it passed in).
+	PutIfAbsent(ctx context.Context, userID string, wrapped []byte) (stored []byte, err error)
+}
+
 // KeyProviderFunc adapts an ordinary function to a KeyProvider — handy for tests and
 // for a 768d/3072d-style closure that already has the unwrap logic inline.
 type KeyProviderFunc func(ctx context.Context, userID string) ([]byte, error)
